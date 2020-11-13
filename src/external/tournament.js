@@ -3,9 +3,10 @@ const match = require('./match');
 
 const groupPath = './build'
 
-const players = fs.readdirSync(groupPath);
+const files = fs.readdirSync(groupPath);
+let players = files.filter(x => x.indexOf('DS_Store') <= 0)
 for (let i = 0; i < players.length; i++) {
-  players[i] = players[i].replace('HexAgent','').replace('.js', '');
+  players[i] = players[i].replace('HexAgent', '').replace('.js', '');
 }
 
 for (let i = 0; i < players.length; i++) {

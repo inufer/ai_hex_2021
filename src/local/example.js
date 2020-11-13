@@ -32,8 +32,8 @@ this.iterator = problemContainer.interactiveSolve(map, {
     },
     onTurn: (result) => {
         let squares = JSON.parse(JSON.stringify(result.data.world));
-        //console.log(result.actions[result.actions.length - 1]);
+        console.log(result.actions[result.actions.length - 1]);
     }
 });
 
-while(this.iterator.next());
+while (this.iterator.next());
