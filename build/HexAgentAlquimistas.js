@@ -1,339 +1,4 @@
-(function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c="function"==typeof require&&require;if(!f&&c)return c(i,!0);if(u)return u(i,!0);var a=new Error("Cannot find module '"+i+"'");throw a.code="MODULE_NOT_FOUND",a}var p=n[i]={exports:{}};e[i][0].call(p.exports,function(r){var n=e[i][1][r];return o(n||r)},p,p.exports,r,e,n,t)}return n[i].exports}for(var u="function"==typeof require&&require,i=0;i<t.length;i++)o(t[i]);return o}return r})()({1:[function(require,module,exports){
-const Agent = require('ai-agents').Agent;
-const Graph = require('node-dijkstra');
-
-const NEG_INF = -999;
-const POS_INF = 999;
-
-class Estado {
-    constructor(tableroActual, idDelAgente, estadoPadre, valor) {
-        this.tableroActual = tableroActual;
-        this.idDelAgente = idDelAgente;
-        this.estadoPadre = estadoPadre;
-        this.valor = valor;
-    }
-
-    evaluar(idEntrada, tableroEnCuestion) {
-        let idContrincante = "";
-        if(idEntrada === "1") {
-            idContrincante = "2"
-        }
-        if(idEntrada === "2") {
-            idContrincante = "1"
-        }
-        let evaluacion_estado = dijkstra(tableroEnCuestion, idContrincante).path.map(id => parseInt(id)).filter(pos => !getOccupiedHex(tableroEnCuestion, idContrincante).includes(pos)).length - dijkstra(tableroEnCuestion, idEntrada).path.map(id => parseInt(id)).filter(pos => !getOccupiedHex(tableroEnCuestion, idEntrada).includes(pos)).length;
-        this.valor = evaluacion_estado;
-    }
-}
-
-
-function getEmptyHex(board) {
-    let result = [];
-    let size = board.length;
-    for (let k = 0; k < size; k++) {
-        for (let j = 0; j < size; j++) {
-            if (board[k][j] === 0) {
-                result.push(k * size + j);
-            }
-        }
-    }
-    return result;
-}
-
-function getOccupiedHex(board, idDelAgente) {
-    let result = [];
-    let size = board.length;
-    for (let k = 0; k < size; k++) {
-        for (let j = 0; j < size; j++) {
-            if (board[k][j] === idDelAgente) {
-                result.push(k * size + j);
-            }
-        }
-    }
-    return result;
-}
-
-const dijkstra = (board, idDelAgente) => {
-    let idEnemy = '';
-    if(idDelAgente === '1') {
-        idEnemy = '2'
-    }
-    if(idDelAgente === '2') {
-        idEnemy = '1'
-    }
-    const mapaGrafo = new Map();
-    const u = new Map();
-    u.set('0', 1)
-    u.set('1', 1)
-    u.set('2', 1)
-    u.set('3', 1)
-    u.set('4', 1)
-    u.set('5', 1)
-    u.set('6', 1)
-    const d = new Map();
-    d.set('42', 1)
-    d.set('43', 1)
-    d.set('44', 1)
-    d.set('45', 1)
-    d.set('46', 1)
-    d.set('47', 1)
-    d.set('48', 1)
-    const l = new Map();
-    l.set('0', 1)
-    l.set('7', 1)
-    l.set('14', 1)
-    l.set('21', 1)
-    l.set('28', 1)
-    l.set('35', 1)
-    l.set('42', 1)
-    const r = new Map();
-    r.set('6', 1)
-    r.set('13', 1)
-    r.set('20', 1)
-    r.set('27', 1)
-    r.set('34', 1)
-    r.set('41', 1)
-    r.set('48', 1)
-    mapaGrafo.set('U', u)
-    mapaGrafo.set('D', d);
-    mapaGrafo.set('L', l)
-    mapaGrafo.set('R', r);
-    for(let i = 0; i < 49; i++) {
-        const grafito = new Map();
-        let iToStr = i.toString();
-        let neighborhoods = dameVecinos(iToStr);
-        for(let j = 0; j < neighborhoods.length; j++) {
-            let costo = 2;
-            if(neighborhoods[j] === 'U' || neighborhoods[j] === 'D' || neighborhoods[j] === 'L' || neighborhoods[j] === 'R') {
-                costo = 1;
-                grafito.set(neighborhoods[j], costo);
-            } else {
-                let position = idToPosition(neighborhoods[j]);
-                if(board[position[0]][position[1]] === idDelAgente) {
-                    costo = 1;
-                    grafito.set(neighborhoods[j], costo);
-                } else if(board[position[0]][position[1]] === idEnemy) {
-                    costo = 99;
-                    grafito.set(neighborhoods[j], costo);
-                } else if(board[position[0]][position[1]] === 0) {
-                    costo = 2;
-                    grafito.set(neighborhoods[j], costo);
-                }
-            }
-        }
-        mapaGrafo.set(iToStr, grafito);
-    }
-    const grafoDef = new Graph(mapaGrafo);
-    if(idDelAgente === '1') {
-        return grafoDef.path('L', 'R', {trim: true, cost: true, avoid: ['U', 'D']})
-    } else if (idDelAgente === '2') {
-        return grafoDef.path('U', 'D', {trim: true, cost: true, avoid: ['L', 'R']})
-    }
-}
-
-const idToPosition = (id) => {
-    let pos = []
-    let idToInt = parseInt(id)
-    pos.push(Math.floor(idToInt / 7))
-    pos.push(idToInt % 7)
-    return pos
-}
-
-const dameVecinos = (num) => {
-    let vecinos = [];
-    if(num === '0') {
-        vecinos.push('U')
-        vecinos.push('7')
-        vecinos.push('1')
-        vecinos.push('L')
-        return vecinos
-    }
-    if(num === '48') {
-        vecinos.push('D')
-        vecinos.push('41')
-        vecinos.push('47')
-        vecinos.push('R')
-        return vecinos
-    }
-    if(num === '6') {
-        vecinos.push('U')
-        vecinos.push('12')
-        vecinos.push('13')
-        vecinos.push('5')
-        vecinos.push('R')
-        return vecinos
-    }
-    if(num === '42') {
-        vecinos.push('D')
-        vecinos.push('35')
-        vecinos.push('36')
-        vecinos.push('43')
-        vecinos.push('L')
-        return vecinos
-    }
-    let ladoIzquierdo = ['7', '14', '21', '28', '35']
-    if(ladoIzquierdo.includes(num)) {
-        vecinos.push('L')
-        let numToInt = parseInt(num)
-        let vecinitos = []
-        vecinitos.push(numToInt - 7)
-        vecinitos.push((numToInt - 7) + 1)
-        vecinitos.push(numToInt + 1)
-        vecinitos.push(numToInt + 7)
-        for(let i = 0; i < vecinitos.length; i++) {
-            vecinos.push(vecinitos[i].toString())
-        }
-        return vecinos
-    }
-    let ladoDerecho = ['13', '20', '27', '34', '41']
-    if(ladoDerecho.includes(num)) {
-        vecinos.push('R')
-        let numToInt = parseInt(num)
-        let vecinitos = []
-        vecinitos.push(numToInt - 7)
-        vecinitos.push(numToInt - 1)
-        vecinitos.push(numToInt + 7)
-        vecinitos.push(numToInt + 6)
-        for(let i = 0; i < vecinitos.length; i++) {
-            vecinos.push(vecinitos[i].toString())
-        }
-        return vecinos
-    }
-    let ladoArriba = ['1', '2', '3', '4', '5']
-    if(ladoArriba.includes(num)) {
-        vecinos.push('U')
-        let numToInt = parseInt(num)
-        let vecinitos = []
-        vecinitos.push(numToInt - 1)
-        vecinitos.push(numToInt + 1)
-        vecinitos.push(numToInt + 6)
-        vecinitos.push(numToInt + 7)
-        for(let i = 0; i < vecinitos.length; i++) {
-            vecinos.push(vecinitos[i].toString())
-        }
-        return vecinos
-    }
-    let ladoAbajo = ['43', '44', '45', '46', '47']
-    if(ladoAbajo.includes(num)) {
-        vecinos.push('D')
-        let numToInt = parseInt(num)
-        let vecinitos = []
-        vecinitos.push(numToInt - 1)
-        vecinitos.push(numToInt + 1)
-        vecinitos.push(numToInt - 6)
-        vecinitos.push(numToInt - 7)
-        for(let i = 0; i < vecinitos.length; i++) {
-            vecinos.push(vecinitos[i].toString())
-        }
-        return vecinos
-    }
-    if(!ladoAbajo.includes(num) && !ladoArriba.includes(num) && !ladoIzquierdo.includes(num) && !ladoDerecho.includes(num)) {
-        let numToInt = parseInt(num)
-        let vecinitos = []
-        vecinitos.push(numToInt - 6)
-        vecinitos.push(numToInt - 7)
-        vecinitos.push(numToInt - 1)
-        vecinitos.push(numToInt + 1)
-        vecinitos.push(numToInt + 6)
-        vecinitos.push(numToInt + 7)
-        for(let i = 0; i < vecinitos.length; i++) {
-            vecinos.push(vecinitos[i].toString())
-        }
-        return vecinos
-    }
-}
-
-
-class HexAgent extends Agent {
-    constructor(value) {
-        super(value);
-    }
-
-    minimaxHexAlgorithm(tablero, idDelAgente) {
-        let estadoInicial = new Estado(tablero, idDelAgente, null, NEG_INF);
-        let branchingMoves = dijkstra(estadoInicial.tableroActual, estadoInicial.idDelAgente).path.map(id => parseInt(id)).filter(pos => !getOccupiedHex(estadoInicial.tableroActual, estadoInicial.idDelAgente).includes(pos));
-        let decision = [];
-        for(let possibility of branchingMoves) {
-            let tablerohijo = JSON.parse(JSON.stringify(estadoInicial.tableroActual));
-            // Marcar la jugada en el tablero
-            tablerohijo[Math.floor(possibility / 7)][possibility % 7] = estadoInicial.idDelAgente;
-            let nextState = new Estado(tablerohijo, estadoInicial.idDelAgente, estadoInicial, POS_INF);
-            if(dijkstra(tablerohijo, estadoInicial.idDelAgente).path.map(id => parseInt(id)).filter(pos => !getOccupiedHex(tablerohijo, estadoInicial.idDelAgente).includes(pos)).length === 0) {
-                return possibility;
-            }
-            let idJugadorContrincante = "";
-            if(nextState.idDelAgente === "1") {
-                idJugadorContrincante = "2"
-            }
-            if(nextState.idDelAgente === "2") {
-                idJugadorContrincante = "1"
-            }
-            let branchingMoves2 = []
-            if(this.id === "1") {
-                branchingMoves2 = dijkstra(nextState.tableroActual, idJugadorContrincante).path.map(id => parseInt(id)).filter(pos => !getOccupiedHex(nextState.tableroActual, idJugadorContrincante).includes(pos));
-            } else if(this.id === "2") {
-                branchingMoves2 = dijkstra(nextState.tableroActual, nextState.idDelAgente).path.map(id => parseInt(id)).filter(pos => !getOccupiedHex(nextState.tableroActual, nextState.idDelAgente).includes(pos));
-            }
-            for(let possibility2 of branchingMoves2) {
-                let tablerohijo2 = JSON.parse(JSON.stringify(nextState.tableroActual));
-                tablerohijo2[Math.floor(possibility2 / 7)][possibility2 % 7] = idJugadorContrincante;
-                let tercerEstado = new Estado(tablerohijo2, idJugadorContrincante, nextState, NEG_INF);
-                let branchingMoves3 = dijkstra(tercerEstado.tableroActual, estadoInicial.idDelAgente).path.map(id => parseInt(id)).filter(pos => !getOccupiedHex(tercerEstado.tableroActual, estadoInicial.idDelAgente).includes(pos));
-                for(let possibility3 of branchingMoves3) {
-                    let tablerohijo3 = JSON.parse(JSON.stringify(tercerEstado.tableroActual));
-                    tablerohijo3[Math.floor(possibility3 / 7)][possibility3 % 7] = estadoInicial.idDelAgente;
-                    let ultimoNivel = new Estado(tablerohijo3, estadoInicial.idDelAgente, tercerEstado, POS_INF);
-                    ultimoNivel.evaluar(ultimoNivel.idDelAgente, ultimoNivel.tableroActual);
-                    // Poda Alfa-Beta
-                    if(ultimoNivel.valor > ultimoNivel.estadoPadre.valor) {
-                        ultimoNivel.estadoPadre.valor = ultimoNivel.valor;
-                    }
-                    if(ultimoNivel.valor >= ultimoNivel.estadoPadre.estadoPadre.valor) {
-                        break;
-                    }
-                }
-                if(tercerEstado.valor < tercerEstado.estadoPadre.valor) {
-                    tercerEstado.estadoPadre.valor = tercerEstado.valor;
-                }
-                if(tercerEstado.valor < tercerEstado.estadoPadre.estadoPadre.valor) {
-                    // Poda Alfa-Beta
-                    break;
-                }
-            }
-            if(nextState.valor > nextState.estadoPadre.valor) {
-                nextState.estadoPadre.valor = nextState.valor;
-                decision = possibility;
-            }
-        }
-        return decision;
-    }
-
-    send() {
-        let board = this.perception;
-        let size = board.length;
-        let available = getEmptyHex(board);
-        let nTurn = size * size - available.length;
-        console.log(nTurn)
-        if (nTurn == 0) { // First move
-            console.log([Math.floor(size / 2), Math.floor(size / 2) - 1])
-            return [Math.floor(size / 2), Math.floor(size / 2) - 1];
-        } else if (nTurn == 1) {
-            console.log([Math.floor(size / 2), Math.floor(size / 2)])
-            return [Math.floor(size / 2), Math.floor(size / 2)];
-        }
-
-        // console.log(dijkstra(board, this.id).path.map(id => parseInt(id)).filter(pos => !getOccupiedHex(board, this.id).includes(pos)))
-        // console.log(dijkstra(board, "2").path.map(id => parseInt(id)).filter(pos => !getOccupiedHex(board, "2").includes(pos)))  
-
-        let jugada = this.minimaxHexAlgorithm(board, this.id);
-        return [Math.floor(jugada / board.length), jugada % board.length];
-    }
-
-}
-
-
-module.exports = HexAgent;
-},{"ai-agents":5,"node-dijkstra":6}],2:[function(require,module,exports){
+require=(function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c="function"==typeof require&&require;if(!f&&c)return c(i,!0);if(u)return u(i,!0);var a=new Error("Cannot find module '"+i+"'");throw a.code="MODULE_NOT_FOUND",a}var p=n[i]={exports:{}};e[i][0].call(p.exports,function(r){var n=e[i][1][r];return o(n||r)},p,p.exports,r,e,n,t)}return n[i].exports}for(var u="function"==typeof require&&require,i=0;i<t.length;i++)o(t[i]);return o}return r})()({1:[function(require,module,exports){
 //const tf = require('@tensorflow/tfjs-node');
 
 class Agent {
@@ -391,7 +56,7 @@ class Agent {
 }
 
 module.exports = Agent;
-},{}],3:[function(require,module,exports){
+},{}],2:[function(require,module,exports){
 
 class AgentController {
     constructor() {
@@ -547,7 +212,7 @@ class AgentController {
 }
 
 module.exports = AgentController;
-},{}],4:[function(require,module,exports){
+},{}],3:[function(require,module,exports){
 const AgentController = require('../core/AgentController');
 
 /**
@@ -618,13 +283,13 @@ class Problem {
 }
 
 module.exports = Problem;
-},{"../core/AgentController":3}],5:[function(require,module,exports){
+},{"../core/AgentController":2}],4:[function(require,module,exports){
 const Problem = require('./core/Problem');
 const Agent = require('./core/Agent');
 const AgentController = require('./core/AgentController');
 
 module.exports = { Problem, Agent, AgentController };
-},{"./core/Agent":2,"./core/AgentController":3,"./core/Problem":4}],6:[function(require,module,exports){
+},{"./core/Agent":1,"./core/AgentController":2,"./core/Problem":3}],5:[function(require,module,exports){
 const Queue = require('./PriorityQueue');
 
 const removeDeepFromMap = require('./removeDeepFromMap');
@@ -922,7 +587,7 @@ class Graph {
 
 module.exports = Graph;
 
-},{"./PriorityQueue":7,"./removeDeepFromMap":8,"./toDeepMap":9,"./validateDeep":10}],7:[function(require,module,exports){
+},{"./PriorityQueue":6,"./removeDeepFromMap":7,"./toDeepMap":8,"./validateDeep":9}],6:[function(require,module,exports){
 /**
  * This very basic implementation of a priority queue is used to select the
  * next node of the graph to walk to.
@@ -1039,7 +704,7 @@ class PriorityQueue {
 
 module.exports = PriorityQueue;
 
-},{}],8:[function(require,module,exports){
+},{}],7:[function(require,module,exports){
 /**
  * Removes a key and all of its references from a map.
  * This function has no side-effects as it returns
@@ -1065,7 +730,7 @@ function removeDeepFromMap(map, key) {
 
 module.exports = removeDeepFromMap;
 
-},{}],9:[function(require,module,exports){
+},{}],8:[function(require,module,exports){
 /**
  * Validates a cost for a node
  *
@@ -1111,7 +776,7 @@ function toDeepMap(source) {
 
 module.exports = toDeepMap;
 
-},{}],10:[function(require,module,exports){
+},{}],9:[function(require,module,exports){
 /**
  * Validate a map to ensure all it's values are either a number or a map
  *
@@ -1136,4 +801,336 @@ function validateDeep(map) {
 
 module.exports = validateDeep;
 
-},{}]},{},[1]);
+},{}],"/src/HexAgent.js":[function(require,module,exports){
+const Agent = require('ai-agents').Agent;
+const Graph = require('node-dijkstra');
+
+const NEG_INF = -999;
+const POS_INF = 999;
+
+class Estado {
+    constructor(tableroActual, idDelAgente, estadoPadre, valor) {
+        this.tableroActual = tableroActual;
+        this.idDelAgente = idDelAgente;
+        this.estadoPadre = estadoPadre;
+        this.valor = valor;
+    }
+
+    evaluar(idEntrada, tableroEnCuestion) {
+        let idContrincante = "";
+        if(idEntrada === "1") {
+            idContrincante = "2"
+        }
+        if(idEntrada === "2") {
+            idContrincante = "1"
+        }
+        let evaluacion_estado = dijkstra(tableroEnCuestion, idContrincante).path.map(id => parseInt(id)).filter(pos => !getOccupiedHex(tableroEnCuestion, idContrincante).includes(pos)).length - dijkstra(tableroEnCuestion, idEntrada).path.map(id => parseInt(id)).filter(pos => !getOccupiedHex(tableroEnCuestion, idEntrada).includes(pos)).length;
+        this.valor = evaluacion_estado;
+    }
+}
+
+
+function getEmptyHex(board) {
+    let result = [];
+    let size = board.length;
+    for (let k = 0; k < size; k++) {
+        for (let j = 0; j < size; j++) {
+            if (board[k][j] === 0) {
+                result.push(k * size + j);
+            }
+        }
+    }
+    return result;
+}
+
+function getOccupiedHex(board, idDelAgente) {
+    let result = [];
+    let size = board.length;
+    for (let k = 0; k < size; k++) {
+        for (let j = 0; j < size; j++) {
+            if (board[k][j] === idDelAgente) {
+                result.push(k * size + j);
+            }
+        }
+    }
+    return result;
+}
+
+const dijkstra = (board, idDelAgente) => {
+    let idEnemy = '';
+    if(idDelAgente === '1') {
+        idEnemy = '2'
+    }
+    if(idDelAgente === '2') {
+        idEnemy = '1'
+    }
+    const mapaGrafo = new Map();
+    const u = new Map();
+    u.set('0', 1)
+    u.set('1', 1)
+    u.set('2', 1)
+    u.set('3', 1)
+    u.set('4', 1)
+    u.set('5', 1)
+    u.set('6', 1)
+    const d = new Map();
+    d.set('42', 1)
+    d.set('43', 1)
+    d.set('44', 1)
+    d.set('45', 1)
+    d.set('46', 1)
+    d.set('47', 1)
+    d.set('48', 1)
+    const l = new Map();
+    l.set('0', 1)
+    l.set('7', 1)
+    l.set('14', 1)
+    l.set('21', 1)
+    l.set('28', 1)
+    l.set('35', 1)
+    l.set('42', 1)
+    const r = new Map();
+    r.set('6', 1)
+    r.set('13', 1)
+    r.set('20', 1)
+    r.set('27', 1)
+    r.set('34', 1)
+    r.set('41', 1)
+    r.set('48', 1)
+    mapaGrafo.set('U', u)
+    mapaGrafo.set('D', d);
+    mapaGrafo.set('L', l)
+    mapaGrafo.set('R', r);
+    for(let i = 0; i < 49; i++) {
+        const grafito = new Map();
+        let iToStr = i.toString();
+        let neighborhoods = dameVecinos(iToStr);
+        for(let j = 0; j < neighborhoods.length; j++) {
+            let costo = 2;
+            if(neighborhoods[j] === 'U' || neighborhoods[j] === 'D' || neighborhoods[j] === 'L' || neighborhoods[j] === 'R') {
+                costo = 1;
+                grafito.set(neighborhoods[j], costo);
+            } else {
+                let position = idToPosition(neighborhoods[j]);
+                if(board[position[0]][position[1]] === idDelAgente) {
+                    costo = 1;
+                    grafito.set(neighborhoods[j], costo);
+                } else if(board[position[0]][position[1]] === idEnemy) {
+                    costo = 99;
+                    grafito.set(neighborhoods[j], costo);
+                } else if(board[position[0]][position[1]] === 0) {
+                    costo = 2;
+                    grafito.set(neighborhoods[j], costo);
+                }
+            }
+        }
+        mapaGrafo.set(iToStr, grafito);
+    }
+    const grafoDef = new Graph(mapaGrafo);
+    if(idDelAgente === '1') {
+        return grafoDef.path('L', 'R', {trim: true, cost: true, avoid: ['U', 'D']})
+    } else if (idDelAgente === '2') {
+        return grafoDef.path('U', 'D', {trim: true, cost: true, avoid: ['L', 'R']})
+    }
+}
+
+const idToPosition = (id) => {
+    let pos = []
+    let idToInt = parseInt(id)
+    pos.push(Math.floor(idToInt / 7))
+    pos.push(idToInt % 7)
+    return pos
+}
+
+const dameVecinos = (num) => {
+    let vecinos = [];
+    if(num === '0') {
+        vecinos.push('U')
+        vecinos.push('7')
+        vecinos.push('1')
+        vecinos.push('L')
+        return vecinos
+    }
+    if(num === '48') {
+        vecinos.push('D')
+        vecinos.push('41')
+        vecinos.push('47')
+        vecinos.push('R')
+        return vecinos
+    }
+    if(num === '6') {
+        vecinos.push('U')
+        vecinos.push('12')
+        vecinos.push('13')
+        vecinos.push('5')
+        vecinos.push('R')
+        return vecinos
+    }
+    if(num === '42') {
+        vecinos.push('D')
+        vecinos.push('35')
+        vecinos.push('36')
+        vecinos.push('43')
+        vecinos.push('L')
+        return vecinos
+    }
+    let ladoIzquierdo = ['7', '14', '21', '28', '35']
+    if(ladoIzquierdo.includes(num)) {
+        vecinos.push('L')
+        let numToInt = parseInt(num)
+        let vecinitos = []
+        vecinitos.push(numToInt - 7)
+        vecinitos.push((numToInt - 7) + 1)
+        vecinitos.push(numToInt + 1)
+        vecinitos.push(numToInt + 7)
+        for(let i = 0; i < vecinitos.length; i++) {
+            vecinos.push(vecinitos[i].toString())
+        }
+        return vecinos
+    }
+    let ladoDerecho = ['13', '20', '27', '34', '41']
+    if(ladoDerecho.includes(num)) {
+        vecinos.push('R')
+        let numToInt = parseInt(num)
+        let vecinitos = []
+        vecinitos.push(numToInt - 7)
+        vecinitos.push(numToInt - 1)
+        vecinitos.push(numToInt + 7)
+        vecinitos.push(numToInt + 6)
+        for(let i = 0; i < vecinitos.length; i++) {
+            vecinos.push(vecinitos[i].toString())
+        }
+        return vecinos
+    }
+    let ladoArriba = ['1', '2', '3', '4', '5']
+    if(ladoArriba.includes(num)) {
+        vecinos.push('U')
+        let numToInt = parseInt(num)
+        let vecinitos = []
+        vecinitos.push(numToInt - 1)
+        vecinitos.push(numToInt + 1)
+        vecinitos.push(numToInt + 6)
+        vecinitos.push(numToInt + 7)
+        for(let i = 0; i < vecinitos.length; i++) {
+            vecinos.push(vecinitos[i].toString())
+        }
+        return vecinos
+    }
+    let ladoAbajo = ['43', '44', '45', '46', '47']
+    if(ladoAbajo.includes(num)) {
+        vecinos.push('D')
+        let numToInt = parseInt(num)
+        let vecinitos = []
+        vecinitos.push(numToInt - 1)
+        vecinitos.push(numToInt + 1)
+        vecinitos.push(numToInt - 6)
+        vecinitos.push(numToInt - 7)
+        for(let i = 0; i < vecinitos.length; i++) {
+            vecinos.push(vecinitos[i].toString())
+        }
+        return vecinos
+    }
+    if(!ladoAbajo.includes(num) && !ladoArriba.includes(num) && !ladoIzquierdo.includes(num) && !ladoDerecho.includes(num)) {
+        let numToInt = parseInt(num)
+        let vecinitos = []
+        vecinitos.push(numToInt - 6)
+        vecinitos.push(numToInt - 7)
+        vecinitos.push(numToInt - 1)
+        vecinitos.push(numToInt + 1)
+        vecinitos.push(numToInt + 6)
+        vecinitos.push(numToInt + 7)
+        for(let i = 0; i < vecinitos.length; i++) {
+            vecinos.push(vecinitos[i].toString())
+        }
+        return vecinos
+    }
+}
+
+
+class HexAgentAlquimistas extends Agent {
+    constructor(value) {
+        super(value);
+    }
+
+    minimaxHexAlgorithm(tablero, idDelAgente) {
+        let estadoInicial = new Estado(tablero, idDelAgente, null, NEG_INF);
+        let branchingMoves = dijkstra(estadoInicial.tableroActual, estadoInicial.idDelAgente).path.map(id => parseInt(id)).filter(pos => !getOccupiedHex(estadoInicial.tableroActual, estadoInicial.idDelAgente).includes(pos));
+        let decision = [];
+        for(let possibility of branchingMoves) {
+            let tablerohijo = JSON.parse(JSON.stringify(estadoInicial.tableroActual));
+            // Marcar la jugada en el tablero
+            tablerohijo[Math.floor(possibility / 7)][possibility % 7] = estadoInicial.idDelAgente;
+            let nextState = new Estado(tablerohijo, estadoInicial.idDelAgente, estadoInicial, POS_INF);
+            if(dijkstra(tablerohijo, estadoInicial.idDelAgente).path.map(id => parseInt(id)).filter(pos => !getOccupiedHex(tablerohijo, estadoInicial.idDelAgente).includes(pos)).length === 0) {
+                return possibility;
+            }
+            let idJugadorContrincante = "";
+            if(nextState.idDelAgente === "1") {
+                idJugadorContrincante = "2"
+            }
+            if(nextState.idDelAgente === "2") {
+                idJugadorContrincante = "1"
+            }
+            let branchingMoves2 = []
+            if(this.id === "1") {
+                branchingMoves2 = dijkstra(nextState.tableroActual, idJugadorContrincante).path.map(id => parseInt(id)).filter(pos => !getOccupiedHex(nextState.tableroActual, idJugadorContrincante).includes(pos));
+            } else if(this.id === "2") {
+                branchingMoves2 = dijkstra(nextState.tableroActual, nextState.idDelAgente).path.map(id => parseInt(id)).filter(pos => !getOccupiedHex(nextState.tableroActual, nextState.idDelAgente).includes(pos));
+            }
+            for(let possibility2 of branchingMoves2) {
+                let tablerohijo2 = JSON.parse(JSON.stringify(nextState.tableroActual));
+                tablerohijo2[Math.floor(possibility2 / 7)][possibility2 % 7] = idJugadorContrincante;
+                let tercerEstado = new Estado(tablerohijo2, idJugadorContrincante, nextState, NEG_INF);
+                let branchingMoves3 = dijkstra(tercerEstado.tableroActual, estadoInicial.idDelAgente).path.map(id => parseInt(id)).filter(pos => !getOccupiedHex(tercerEstado.tableroActual, estadoInicial.idDelAgente).includes(pos));
+                for(let possibility3 of branchingMoves3) {
+                    let tablerohijo3 = JSON.parse(JSON.stringify(tercerEstado.tableroActual));
+                    tablerohijo3[Math.floor(possibility3 / 7)][possibility3 % 7] = estadoInicial.idDelAgente;
+                    let ultimoNivel = new Estado(tablerohijo3, estadoInicial.idDelAgente, tercerEstado, POS_INF);
+                    ultimoNivel.evaluar(ultimoNivel.idDelAgente, ultimoNivel.tableroActual);
+                    // Poda Alfa-Beta
+                    if(ultimoNivel.valor > ultimoNivel.estadoPadre.valor) {
+                        ultimoNivel.estadoPadre.valor = ultimoNivel.valor;
+                    }
+                    if(ultimoNivel.valor >= ultimoNivel.estadoPadre.estadoPadre.valor) {
+                        break;
+                    }
+                }
+                if(tercerEstado.valor < tercerEstado.estadoPadre.valor) {
+                    tercerEstado.estadoPadre.valor = tercerEstado.valor;
+                }
+                if(tercerEstado.valor < tercerEstado.estadoPadre.estadoPadre.valor) {
+                    // Poda Alfa-Beta
+                    break;
+                }
+            }
+            if(nextState.valor > nextState.estadoPadre.valor) {
+                nextState.estadoPadre.valor = nextState.valor;
+                decision = possibility;
+            }
+        }
+        return decision;
+    }
+
+    send() {
+        let board = this.perception;
+        let size = board.length;
+        let available = getEmptyHex(board);
+        let nTurn = size * size - available.length;
+        if (nTurn == 0) { 
+            return [Math.floor(size / 2), Math.floor(size / 2) - 1];
+        } else if (nTurn == 1) {
+            return [Math.floor(size / 2), Math.floor(size / 2)];
+        }
+
+        // console.log(dijkstra(board, this.id).path.map(id => parseInt(id)).filter(pos => !getOccupiedHex(board, this.id).includes(pos)))
+        // console.log(dijkstra(board, "2").path.map(id => parseInt(id)).filter(pos => !getOccupiedHex(board, "2").includes(pos)))  
+
+        let jugada = this.minimaxHexAlgorithm(board, this.id);
+        return [Math.floor(jugada / board.length), jugada % board.length];
+    }
+
+}
+
+
+module.exports = HexAgentAlquimistas;
+},{"ai-agents":4,"node-dijkstra":5}]},{},[]);
