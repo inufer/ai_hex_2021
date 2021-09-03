@@ -25,7 +25,7 @@
   },
   "homepage": "https://github.com/andcastillo/ai-hex#readme",
   "dependencies": {
-    "ai-agents": "0.2.0",
+    "ai-agents": "0.2.1",
     "node-dijkstra": "2.5.0"
   },
   "devDependencies": {
