@@ -12,7 +12,50 @@ let cache = {};
  * @returns {float}
  */
 function boardScore(board, player) {
-  return Math.random();
+    let size = board.length;
+    let player1 = boardPath(board);
+    //let player2 = boardPath(transpose(board));
+    const toReturn = {move: []};
+    //console.log(player1)
+    
+    if (!player1) {
+        toReturn.score = -size*size;
+    } else {
+        if (player1.length == 2) { // Por defecto hay dos nodos extras, T y X
+            toReturn.score = size*size;
+        } else {
+            let player2 = boardPath(transpose(board), '2');
+            if (!player2) {
+               toReturn.score = size*size; 
+            } else {
+                //console.log(player2.length)
+                toReturn.score = player2.length - player1.length;
+
+                if (player === '2') {
+                    
+                    player1.forEach((cell, i) => {
+                        
+                        let row = Math.floor(parseInt(cell) / size);
+                        let col = parseInt(cell) % size;
+
+                        player1[i] = col*size + row + '';
+                    });
+                    toReturn.move = player1;
+                }
+            }
+        } 
+    }
+
+    if (player === '2') {
+        toReturn.score *= -1;
+     }
+
+    
+    //console.log(player1)
+
+    //console.log(player1)
+    //console.log(player2)
+    return toReturn; 
 }
 /**
  * Esta función construye un grafo a partir de un
@@ -26,8 +69,8 @@ function boardScore(board, player) {
  * @param {array} board 
  * @returns 
  */
-function boardPath(board) {
-  let player = '1';
+function boardPath(board, p) {
+  let player = p || '1';
   let size = board.length;
 
   const route = new Graph();
@@ -42,6 +85,8 @@ function boardPath(board) {
       if (board[i][j] === 0) { // || board[i][j] === player
         let list = getNeighborhood(key, player, board);
         list = removeIfAny(board, list, i, j);
+        
+        //if (key === 0) console.log(list)
 
         let neighbors = {};
         let sideX = false;
@@ -51,12 +96,38 @@ function boardPath(board) {
             case -1:
               neighbors[player + 'X'] = 1;
               neighborsX[key + ''] = 1;
-              sideX = sideX || board[i][j] === player;
+              
+              list.forEach( (p) => {
+                  if (p >= 0 && p % size === 0) {
+                    let sideXArr = board.map( row => row[size - 1]);
+
+                    if (sideXArr.some( m => m === player))
+                      neighborsT[p + ''] = 1;
+                      sideX = true;
+                  }
+              })
+              //sideX = sideX || board[i][j] === player;
               break;
             case -2:
               neighbors[player + 'T'] = 1;
               neighborsT[key + ''] = 1;
-              sideT = sideT || board[i][j] === player;
+              // Si key esta en el borde T y además de eso,
+              // en la lista de vecinos hay una casilla
+              // perteneciente al otro extremo: (key_vecino + 1) % size == 0
+              // este vecino debe agregarse como vecino de T (neighborsT) 
+              list.forEach( (p) => {
+                  if (p >= 0 && (p + 1) % size === 0) {
+                    //console.log(reverseHash(p, size, true))
+                    //console.log(key)
+                    let sideTArr = board.map( row => row[0]);
+
+                    if (sideTArr.some( m => m === player ))
+                      neighborsT[p + ''] = 1;
+                      sideT = true;
+                  } 
+              })
+
+              //sideT = sideT || board[i][j] === player;
               break;
             default:
               neighbors[x + ''] = 1;
@@ -75,9 +146,24 @@ function boardPath(board) {
   route.addNode(player + 'T', neighborsT);
   route.addNode(player + 'X', neighborsX);
 
+     //console.log(route)
+
   return route.path(player + 'T', player + 'X');
 }
 
+function reverseHash(key, size, transpose = false) {
+    
+    let row = Math.floor(key / size);
+    let col = key % size;
+
+
+    if (transpose) {
+        return col*size + row;
+    }
+
+    return [row, col]
+
+}
 
 function removeIfAny(board, list, row, col) {
   let size = board.length;
@@ -184,42 +270,41 @@ function pushIfAny(result, board, player, row, col) {
 }
 
 module.exports = boardScore;
-/*
-board = [[0, 0, 0],
-[0, '2', 0],
-['1', '1', 0]];
-console.log(boardScore(board, '1'));  // Debe dar 3 - 1 = 2
 
-board = [[0, 0, '1'],
+/*board = [[0, '2', 0],
+[0, '2', 0],
+['1', '2', 0]];
+console.log( boardPath(board));  // Debe dar 3 - 1 = 2
+*/
+/*board = [[0, 0, '1'],
 [0, '2', 0],
 ['1', 0, 0]];
-console.log(boardScore(board, '1'));  // Debe dar 3 - 1 = 2
+console.log(boardScore(board, '1'));  // Debe dar 2-2=0
+*/
+//board = [[0, '1', '1'],
+//['2', '2', '2'],
+//[0, 0, 0]];
+//console.log(boardScore(board, '1')) ;
 
-/*let board = [[0, '1', '1'],
-['2', '2', '2'],
-[0, 0, 0]];
-console.log(boardScore(board, '2'));*/
-
-/* = [[0, '1', '1'],
-['2', '2', '2'],
-[0, 0, 0]];
-console.log(boardScore(board, '1'));*/
 /*
-let board = [[0, '2', '2'],
-['1', '1', '1'],
+board = [[0, '1', '1'],
+['2', '2', '2'],
 [0, 0, 0]];
 console.log(boardScore(board, '1'));
-
 board = [[0, '2', '2'],
 ['1', '1', '1'],
 [0, 0, 0]];
 console.log(boardScore(board, '2'));
-
+/*
 board = [[0, '2', '2'],
-['1', '1', '2'],
-[0, 0, '2']];
-console.log(boardScore(board, '1'));
-
+['1', '1', '1'],
+[0, 0, 0]];
+console.log(boardScore(board, '2'));
+board = [[0, '2', 0],
+['1', '2', 0],
+['1', '1', '1']];
+console.log(boardPath(board));
+/*
 board = [[0, '2', '2'],
 ['1', '1', '2'],
 [0, 0, '2']];
@@ -229,7 +314,6 @@ console.log(boardScore(board, '2'));
              [0,   '2', 0],
              [0,    0,  0]];
 console.log(boardScore(board, '2'));
-
     board = [['1', '1', 0],
              [0,   '2', '2'],
              [0,    0,  0]];
