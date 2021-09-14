@@ -12,50 +12,9 @@ let cache = {};
  * @returns {float}
  */
 function boardScore(board, player) {
-    let size = board.length;
-    let player1 = boardPath(board);
-    //let player2 = boardPath(transpose(board));
-    const toReturn = {move: []};
-    //console.log(player1)
-    
-    if (!player1) {
-        toReturn.score = -size*size;
-    } else {
-        if (player1.length == 2) { // Por defecto hay dos nodos extras, T y X
-            toReturn.score = size*size;
-        } else {
-            let player2 = boardPath(transpose(board), '2');
-            if (!player2) {
-               toReturn.score = size*size; 
-            } else {
-                //console.log(player2.length)
-                toReturn.score = player2.length - player1.length;
-
-                if (player === '2') {
-                    
-                    player1.forEach((cell, i) => {
-                        
-                        let row = Math.floor(parseInt(cell) / size);
-                        let col = parseInt(cell) % size;
-
-                        player1[i] = col*size + row + '';
-                    });
-                    toReturn.move = player1;
-                }
-            }
-        } 
-    }
-
-    if (player === '2') {
-        toReturn.score *= -1;
-     }
-
-    
-    //console.log(player1)
-
-    //console.log(player1)
-    //console.log(player2)
-    return toReturn; 
+    // Implemente esta funció
+                    toReturn.move = player1;n
+    return Math.random()*10; 
 }
 /**
  * Esta función construye un grafo a partir de un
@@ -69,8 +28,8 @@ function boardScore(board, player) {
  * @param {array} board 
  * @returns 
  */
-function boardPath(board, p) {
-  let player = p || '1';
+function boardPath(board) {
+  let player = '1';
   let size = board.length;
 
   const route = new Graph();
@@ -82,11 +41,13 @@ function boardPath(board, p) {
   for (let i = 0; i < size; i++) {
     for (let j = 0; j < size; j++) {
       let key = i * size + j;
-      if (board[i][j] === 0) { // || board[i][j] === player
+      if (board[i][j] === 0 || board[i][j] === player) {
         let list = getNeighborhood(key, player, board);
+        // Cache this result
+        //cache[key] = list;
         list = removeIfAny(board, list, i, j);
-        
-        //if (key === 0) console.log(list)
+
+        //if (key === 5) console.log(list)
 
         let neighbors = {};
         let sideX = false;
@@ -96,38 +57,12 @@ function boardPath(board, p) {
             case -1:
               neighbors[player + 'X'] = 1;
               neighborsX[key + ''] = 1;
-              
-              list.forEach( (p) => {
-                  if (p >= 0 && p % size === 0) {
-                    let sideXArr = board.map( row => row[size - 1]);
-
-                    if (sideXArr.some( m => m === player))
-                      neighborsT[p + ''] = 1;
-                      sideX = true;
-                  }
-              })
-              //sideX = sideX || board[i][j] === player;
+              sideX = sideX || board[i][j] === player;
               break;
             case -2:
               neighbors[player + 'T'] = 1;
               neighborsT[key + ''] = 1;
-              // Si key esta en el borde T y además de eso,
-              // en la lista de vecinos hay una casilla
-              // perteneciente al otro extremo: (key_vecino + 1) % size == 0
-              // este vecino debe agregarse como vecino de T (neighborsT) 
-              list.forEach( (p) => {
-                  if (p >= 0 && (p + 1) % size === 0) {
-                    //console.log(reverseHash(p, size, true))
-                    //console.log(key)
-                    let sideTArr = board.map( row => row[0]);
-
-                    if (sideTArr.some( m => m === player ))
-                      neighborsT[p + ''] = 1;
-                      sideT = true;
-                  } 
-              })
-
-              //sideT = sideT || board[i][j] === player;
+              sideT = sideT || board[i][j] === player;
               break;
             default:
               neighbors[x + ''] = 1;
@@ -146,25 +81,19 @@ function boardPath(board, p) {
   route.addNode(player + 'T', neighborsT);
   route.addNode(player + 'X', neighborsX);
 
-     //console.log(route)
+  //console.log(route)
 
   return route.path(player + 'T', player + 'X');
 }
 
-function reverseHash(key, size, transpose = false) {
-    
-    let row = Math.floor(key / size);
-    let col = key % size;
-
-
-    if (transpose) {
-        return col*size + row;
-    }
-
-    return [row, col]
-
-}
-
+/**
+ * Evita que se consideren las casillas donde el enemigo tiene 2 opciones para cerrar el camino
+ * @param {*} board 
+ * @param {*} list 
+ * @param {*} row 
+ * @param {*} col 
+ * @returns 
+ */
 function removeIfAny(board, list, row, col) {
   let size = board.length;
   if (row > 0 && col > 0 && row < size - 1 && col < size - 1 && list.length > 0) {
@@ -221,18 +150,19 @@ function removeIfAny(board, list, row, col) {
  * @param {Matrix} board 
  */
 function getNeighborhood(currentHex, player, board) {
-  //Check if this value has been precalculated in this turn
-  if (cache[currentHex + player]) {
-    //console.log("Returned from cache");
-    return cache[currentHex + player];
-  }
-
   let size = board.length;
   let row = Math.floor(currentHex / size);
   let col = currentHex % size;
   let result = [];
   let currentValue = board[row][col];
+
   board[row][col] = 'x';
+  //Check if this value has been precalculated in this turn
+  //if (cache[currentHex]) {
+  //console.log("From cache")
+  //  return cache[currentHex];
+  //}
+
   // Check the six neighbours of the current hex
   pushIfAny(result, board, player, row - 1, col);
   pushIfAny(result, board, player, row - 1, col + 1);
@@ -250,9 +180,6 @@ function getNeighborhood(currentHex, player, board) {
 
   board[row][col] = currentValue;
 
-  // Cache this result
-  cache[currentHex + player] = result;
-
   return result;
 }
 
@@ -268,6 +195,7 @@ function pushIfAny(result, board, player, row, col) {
     }
   }
 }
+
 
 module.exports = boardScore;
 
