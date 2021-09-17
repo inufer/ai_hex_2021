@@ -19,7 +19,6 @@ class Agent {
     setup(initialState = {}) {
         this.initialState = initialState;
     }
-
     /**
      * Function that receive and store the perception of the world that is sent by the agent controller. This data is stored internally
      * in the this.perception variable
@@ -33,7 +32,7 @@ class Agent {
      * Inform to the Agent controller about the action to perform
      */
     send() {
-        return this.table["deafult"];
+        return table["deafult"];
     }
 
     /**
@@ -63,8 +62,9 @@ class AgentController {
     constructor() {
         this.agents = {};
         this.world0 = null;
+        this.world = null;
         this.actions = [];
-        this.data = { states: {}, world: {} };
+        this.data = { states: [], world: {} };
     }
     /**
      * Setup the configuration for the agent controller
@@ -135,7 +135,6 @@ class AgentController {
             let keys = Object.keys(this.agents);
             let agent = this.agents[keys[this.currentAgentIndex]];
             agent.receive(this.problem.perceptionForAgent(this.getData(), agent.getID()));
-            // Espera
             let action = agent.send();
             this.actions.push({ agentID: agent.getID(), action });
             this.problem.update(this.data, action, agent.getID());
@@ -144,7 +143,7 @@ class AgentController {
                 return false;
             } else {
                 if (this.callbacks.onTurn) {
-                    this.callbacks.onTurn({ actions: this.getActions(), data: JSON.parse(JSON.stringify(this.data)) });
+                    this.callbacks.onTurn({ actions: this.getActions(), data: this.data });
                 }
                 if (this.currentAgentIndex >= keys.length - 1) this.currentAgentIndex = 0;else this.currentAgentIndex++;
                 return true;
@@ -808,129 +807,127 @@ const transpose = require('./transposeHex');
 
 let cache = {};
 
-/**
- * Implemente aquí su función heurística para calcular el puntaje 
- * de un tablero de hex puede contener varias jugadas de ambos jugadores.
- * Tenga en cuenta que usted puede ser el jugador 1 o el juegador 2.
- * @param {array} board 
- * @param {string} player 
- * @returns {float}
- */
 function boardScore(board, player) {
-  return Math.random();
-}
-/**
- * Esta función construye un grafo a partir de un
- * tablero de Hex para el jugador 1.
- * Cada casilla es un nodo que tiene conexiones a sus 6 vecinos.
- * Para la casilla (i, j), las 6 casillas vecinas tienen
- * conexiones en el grafo entre si. Si un vecino de esta casilla ya
- * pertenece al jugador 1, los vecinos de dicha casilla vecina también
- * se consideran vecinos de (i, j). Su un vecino de esta casilla
- * pertenece al jugador 2, dicho vecino no se considera vecino de (i,j)
- * @param {array} board 
- * @returns 
- */
-function boardPath(board) {
-  let player = '1';
-  let size = board.length;
-
-  const route = new Graph();
-
-  let neighborsT = {};
-  let neighborsX = {};
-  cache = {};
-  // Build the graph out of the hex board
-  for (let i = 0; i < size; i++) {
-    for (let j = 0; j < size; j++) {
-      let key = i * size + j;
-      if (board[i][j] === 0) { // || board[i][j] === player
-        let list = getNeighborhood(key, player, board);
-        list = removeIfAny(board, list, i, j);
-
-        let neighbors = {};
-        let sideX = false;
-        let sideT = false;
-        list.forEach(x => {
-          switch (x) {
-            case -1:
-              neighbors[player + 'X'] = 1;
-              neighborsX[key + ''] = 1;
-              sideX = sideX || board[i][j] === player;
-              break;
-            case -2:
-              neighbors[player + 'T'] = 1;
-              neighborsT[key + ''] = 1;
-              sideT = sideT || board[i][j] === player;
-              break;
-            default:
-              neighbors[x + ''] = 1;
-          }
-        });
-        // This case occurs when the game has finished
-        if (sideT && sideX) {
-          neighborsX[player + 'T'] = 1;
-          neighborsT[player + 'X'] = 1;
+    let path0 = boardPath(board);
+    let score = 0;
+    if (!path0) {
+        score = -(board.length * board.length);
+    } else {
+        if (path0.length === 2) {
+            score = (board.length * board.length);
+        } else {
+            let path1 = boardPath(transpose(board));
+            if (!path1) {
+                score = (board.length * board.length)
+            } else {
+                score = path1.length - path0.length;
+            }
         }
-        route.addNode(key + '', neighbors);
-      }
     }
-  }
 
-  route.addNode(player + 'T', neighborsT);
-  route.addNode(player + 'X', neighborsX);
+    return player === '1' ? score : -score;
+}
 
-  return route.path(player + 'T', player + 'X');
+function boardPath(board) {
+    let player = '1';
+    let size = board.length;
+
+    const route = new Graph();
+
+    let neighborsT = {};
+    let neighborsX = {};
+    cache = {};
+    // Build the graph out of the hex board
+    for (let i = 0; i < size; i++) {
+        for (let j = 0; j < size; j++) {
+            let key = i * size + j;
+            if (board[i][j] === 0) { // || board[i][j] === player
+                let list = getNeighborhood(key, player, board);
+                list = removeIfAny(board, list, i, j);
+
+                let neighbors = {};
+                let sideX = false;
+                let sideT = false;
+                list.forEach(x => {
+                    switch (x) {
+                        case -1:
+                            neighbors[player + 'X'] = 1;
+                            neighborsX[key + ''] = 1;
+                            sideX = sideX || board[i][j] === player;
+                            break;
+                        case -2:
+                            neighbors[player + 'T'] = 1;
+                            neighborsT[key + ''] = 1;
+                            sideT = sideT || board[i][j] === player;
+                            break;
+                        default:
+                            neighbors[x + ''] = 1;
+                    }
+                });
+                // This case occurs when the game has finished
+                if (sideT && sideX) {
+                    neighborsX[player + 'T'] = 1;
+                    neighborsT[player + 'X'] = 1;
+                }
+                route.addNode(key + '', neighbors);
+            }
+        }
+    }
+
+    route.addNode(player + 'T', neighborsT);
+    route.addNode(player + 'X', neighborsX);
+
+    return route.path(player + 'T', player + 'X');
 }
 
 
 function removeIfAny(board, list, row, col) {
-  let size = board.length;
-  if (row > 0 && col > 0 && row < size - 1 && col < size - 1 && list.length > 0) {
-    if (board[row - 1][col] === 0 && board[row - 1][col - 1] === '2' && board[row][col + 1] === '2') {
-      let k = list.findIndex(key => key === (row - 1) * size + col);
-      //console.log('x: ' + k + ' ' + ((row - 1) *  size + col));
-      //console.log(list);
-      if (k >= 0)
-        list.splice(k, 1);
+    let size = board.length;
+    if(row > 0 && col > 0 && row < size - 1 && col < size - 1 && list.length > 0) {
+        if (board[row - 1][col] === 0 && board[row - 1][col - 1] === '2' && board[row][col + 1] === '2') {
+            let k = list.findIndex(key => key === (row - 1) *  size + col);
+            //console.log('x: ' + k + ' ' + ((row - 1) *  size + col));
+            //console.log(list);
+            if (k >= 0)
+                list.splice(k, 1);
+        }
+        if (board[row][col + 1] === 0 && board[row - 1][col] === '2' && board[row + 1][col + 1] === '2') {
+            let k = list.findIndex(key => key === row *  size + col + 1);
+            //console.log('x: ' + k + ' ' + (row *  size + col + 1) );
+            //console.log(list);
+            if (k >= 0)
+                list.splice(k, 1);
+        }
+        if (board[row + 1][col + 1] === 0 && board[row][col + 1] === '2' && board[row + 1][col] === '2') {
+            let k = list.findIndex(key => key === (row + 1) * size + col + 1);
+            //console.log('x: ' + k + ' ' + ((row + 1) * size + col));
+            //console.log(list);
+            if (k >= 0)
+                list.splice(k, 1);
+        }
+        if (board[row + 1][col] === 0 && board[row + 1][col + 1] === '2' && board[row + 1][col - 1] === '2') {
+            let k = list.findIndex(key => key === (row + 1) * size + col);
+            //console.log('x: ' + k+ ' ' + ((row + 1) * size + col));
+            //console.log(list);
+            if (k >= 0)
+                list.splice(k, 1);
+        }
+        if (board[row][col - 1] === 0 && board[row + 1][col] === '2' && board[row -1 ][col - 1] === '2') {
+            let k = list.findIndex(key => key === row * size + col - 1);
+            //console.log('x: ' + k + ' ' + (row * size + col - 1));
+            //console.log(list);
+            if (k >= 0)
+                list.splice(k, 1);
+        }
+        if (board[row - 1][col - 1] === 0 && board[row - 1][col] === '2' && board[row][col - 1] === '2') {
+            let k = list.findIndex(key => key === (row - 1) * size + col - 1);
+            //console.log('x: ' + k + ' ' + ((row - 1) * size + col - 1));
+            //console.log(list);
+            if (k >= 0)
+                list.splice(k, 1);
+        }
     }
-    if (board[row][col + 1] === 0 && board[row - 1][col] === '2' && board[row + 1][col + 1] === '2') {
-      let k = list.findIndex(key => key === row * size + col + 1);
-      //console.log('x: ' + k + ' ' + (row *  size + col + 1) );
-      //console.log(list);
-      if (k >= 0)
-        list.splice(k, 1);
-    }
-    if (board[row + 1][col + 1] === 0 && board[row][col + 1] === '2' && board[row + 1][col] === '2') {
-      let k = list.findIndex(key => key === (row + 1) * size + col + 1);
-      //console.log('x: ' + k + ' ' + ((row + 1) * size + col));
-      //console.log(list);
-      if (k >= 0)
-        list.splice(k, 1);
-    }
-    if (board[row + 1][col] === 0 && board[row + 1][col + 1] === '2' && board[row + 1][col - 1] === '2') {
-      let k = list.findIndex(key => key === (row + 1) * size + col);
-      //console.log('x: ' + k+ ' ' + ((row + 1) * size + col));
-      //console.log(list);
-      if (k >= 0)
-        list.splice(k, 1);
-    }
-    if (board[row][col - 1] === 0 && board[row + 1][col] === '2' && board[row - 1][col - 1] === '2') {
-      let k = list.findIndex(key => key === row * size + col - 1);
-      //console.log('x: ' + k + ' ' + (row * size + col - 1));
-      //console.log(list);
-      if (k >= 0)
-        list.splice(k, 1);
-    }
-    if (board[row - 1][col - 1] === 0 && board[row - 1][col] === '2' && board[row][col - 1] === '2') {
-      let k = list.findIndex(key => key === (row - 1) * size + col - 1);
-      //console.log('x: ' + k + ' ' + ((row - 1) * size + col - 1));
-      //console.log(list);
-      if (k >= 0)
-        list.splice(k, 1);
-    }
-  }
-  return list;
+    return list;
 }
 /**
  * Return an array of the neighbors of the currentHex that belongs to the same player. The 
@@ -940,52 +937,52 @@ function removeIfAny(board, list, row, col) {
  * @param {Matrix} board 
  */
 function getNeighborhood(currentHex, player, board) {
-  //Check if this value has been precalculated in this turn
-  if (cache[currentHex + player]) {
-    //console.log("Returned from cache");
-    return cache[currentHex + player];
-  }
+    //Check if this value has been precalculated in this turn
+    if (cache[currentHex + player]) {
+        //console.log("Returned from cache");
+        return cache[currentHex + player];
+    }
 
-  let size = board.length;
-  let row = Math.floor(currentHex / size);
-  let col = currentHex % size;
-  let result = [];
-  let currentValue = board[row][col];
-  board[row][col] = 'x';
-  // Check the six neighbours of the current hex
-  pushIfAny(result, board, player, row - 1, col);
-  pushIfAny(result, board, player, row - 1, col + 1);
-  pushIfAny(result, board, player, row, col + 1);
-  pushIfAny(result, board, player, row, col - 1);
-  pushIfAny(result, board, player, row + 1, col);
-  pushIfAny(result, board, player, row + 1, col - 1);
+    let size = board.length;
+    let row = Math.floor(currentHex / size);
+    let col = currentHex % size;
+    let result = [];
+    let currentValue = board[row][col];
+    board[row][col] = 'x';
+    // Check the six neighbours of the current hex
+    pushIfAny(result, board, player, row - 1, col);
+    pushIfAny(result, board, player, row - 1, col + 1);
+    pushIfAny(result, board, player, row, col + 1);
+    pushIfAny(result, board, player, row, col - 1);
+    pushIfAny(result, board, player, row + 1, col);
+    pushIfAny(result, board, player, row + 1, col - 1);
 
-  // Add the edges if hex is at the border
-  if (col === size - 1) {
-    result.push(-1);
-  } else if (col === 0) {
-    result.push(-2);
-  }
+    // Add the edges if hex is at the border
+    if (col === size - 1) {
+        result.push(-1);
+    } else if (col === 0) {
+        result.push(-2);
+    }
 
-  board[row][col] = currentValue;
+    board[row][col] = currentValue;
 
-  // Cache this result
-  cache[currentHex + player] = result;
+    // Cache this result
+    cache[currentHex + player] = result;
 
-  return result;
+    return result;
 }
 
 function pushIfAny(result, board, player, row, col) {
-  let size = board.length;
-  if (row >= 0 && row < size && col >= 0 && col < size) {
-    if (board[row][col] === player || board[row][col] === 0) {
-      if (board[row][col] === player) {
-        result.push(...getNeighborhood(col + row * size, player, board));
-      } else {
-        result.push(col + row * size);
-      }
+    let size = board.length;
+    if (row >= 0 && row < size && col >= 0 && col < size) {
+        if (board[row][col] === player || board[row][col] === 0) {
+            if (board[row][col] === player) {
+                result.push(...getNeighborhood(col + row * size, player, board));
+            } else {
+                result.push(col + row * size);
+            }
+        }
     }
-  }
 }
 
 module.exports = boardScore;
@@ -1065,21 +1062,21 @@ const transpose = require('./transposeHex');
 const boardScore = require('./boardScore');
 const getEmptyHex = require('./getEmptyHex');
 
-let counter = 0;
+ let counter = 0;
 
-/**
-* Return the best move for the player 1. Before calling this function you must
-* transpose the player board, so we always consider that the player is connecting
-* the left and the right sides of the board.
-* @param {*} board 
-* @param {*} player0 
-* @param {*} player 
-* @param {*} level 
-* @param {*} maxLevel 
-* @param {*} alpha 
-* @param {*} beta 
-* @param {*} cache 
-*/
+ /**
+ * Return the best move for the player 1. Before calling this function you must
+ * transpose the player board, so we always consider that the player is connecting
+ * the left and the right sides of the board.
+ * @param {*} board 
+ * @param {*} player0 
+ * @param {*} player 
+ * @param {*} level 
+ * @param {*} maxLevel 
+ * @param {*} alpha 
+ * @param {*} beta 
+ * @param {*} cache 
+ */
 function minMax(board, player0, player, level, maxLevel, alpha, beta, cache, available) {
   const MAX_SCORE = board.length * board.length;
   const MIN_SCORE = -MAX_SCORE;
@@ -1087,25 +1084,66 @@ function minMax(board, player0, player, level, maxLevel, alpha, beta, cache, ava
   if (available == null)
     available = getCandidates(board); //getEmptyHex(board);
   let bestScore = Number.MIN_SAFE_INTEGER;
+  if (level % 2 == 1) {
+    bestScore = Number.MAX_SAFE_INTEGER;
+  }
+  let bestMove = [];
+  let maxActions = available.length;
+  for (let i = 0; i < maxActions; i++) {
+    if (available[i] >= 0) {
+      let move = available[i];
+      let action = [Math.floor(move / board.length), move % board.length];
+      available[i] = -1;
+      board[action[0]][action[1]] = player;
+      let score = 0;
 
-  // Implemente su algoritmo minmax con poda alpha beta aquí
+       // Chech if we already have a score for this board
+      let cacheKey = getHash(board);
+      if (cache[cacheKey]) {
+        score = cache[cacheKey];
+      } else {
+        score = boardScore(board, player0);
+        if (!(level === maxLevel ||
+          score === MIN_SCORE||
+          score === MAX_SCORE)) {
+          let nextPlayer = player === '1' ? '2' : '1';
+          score = minMax(board, player0, nextPlayer, level + 1, maxLevel, alpha, beta, cache, available).score;
+        }
+        // Cache this score
+        cache[cacheKey] = score;
+      }
 
+       board[action[0]][action[1]] = 0;
 
-  // Fin de su implementación
-  // retorna el mejor puntaje y la mejor jugada [i, j]
+       if (level % 2 == 1) {
+        if (score < bestScore) {
+          bestScore = score;
+          bestMove = action;
+          if (score < beta)
+            beta = score;
+        }
+      } else {
+        if (score > bestScore) {
+          bestScore = score;
+          bestMove = action;
+          if (score > alpha)
+            alpha = score;
+        }
+      }
+      available[i] = move;
+      // Alpha beta prune
+      if (alpha >= beta) {
+        break;
+      }
+    }
+  }
+  // console.log(counter);
   return { score: bestScore, move: bestMove };
 }
 
-module.exports = minMax;
+ module.exports = minMax;
 
-/**
- * Esta función sirve para construir un hash del tablero.
- * O puede reducirla usando una función md5 
- * Usela para construir una tabla que le permita identificar nodos ya visitados
- * @param {*} board 
- * @returns 
- */
-function getHash(board) {
+ function getHash(board) {
   let hash = '';
   board.forEach(row => {
     row.forEach(cell => {
@@ -1115,11 +1153,11 @@ function getHash(board) {
   return hash;
 }
 
-/**
-* Get the candidates hex to be evaluated by the minMax. Not all the empty hex are really 
-* interesting. We will consider only the neighbours of the occupied hex at max distance of 2 
-* @param {} board 
-*/
+ /**
+ * Get the candidates hex to be evaluated by the minMax. Not all the empty hex are really 
+ * interesting. We will consider only the neighbours of the occupied hex at max distance of 2 
+ * @param {} board 
+ */
 function getCandidates(board) {
   let size = board.length;
   let boardT = new Array(size);
@@ -1127,7 +1165,7 @@ function getCandidates(board) {
     boardT[i] = board[i].slice();
   }
 
-  for (let i = 0; i < size; i++) {
+   for (let i = 0; i < size; i++) {
     for (let j = 0; j < size; j++) {
       if (boardT[i][j] === '1' || boardT[i][j] === '2') {
         markAdyacentCells(boardT, i, j, 1);
@@ -1137,7 +1175,7 @@ function getCandidates(board) {
     }
   }
 
-  let candidates = [];
+   let candidates = [];
   for (let i = 0; i < size; i++) {
     for (let j = 0; j < size; j++) {
       if (boardT[i][j] === 1 || boardT[i][j] === 2) {
@@ -1148,13 +1186,13 @@ function getCandidates(board) {
   return candidates;
 }
 
-/**
-* Change the adyacent cells by the current value if they are empty
-* @param {} board 
-* @param {*} row 
-* @param {*} col 
-* @param {*} value 
-*/
+ /**
+ * Change the adyacent cells by the current value if they are empty
+ * @param {} board 
+ * @param {*} row 
+ * @param {*} col 
+ * @param {*} value 
+ */
 function markAdyacentCells(board, row, col, value) {
   changeIfNeeded(board, row - 1, col, value);
   changeIfNeeded(board, row - 1, col + 1, value);
@@ -1166,13 +1204,13 @@ function markAdyacentCells(board, row, col, value) {
   changeIfNeeded(board, row - 1, col - 1, value);
 }
 
-/**
-* Change the current hex if it is valid and empty
-* @param {} board 
-* @param {*} row 
-* @param {*} col 
-* @param {*} value 
-*/
+ /**
+ * Change the current hex if it is valid and empty
+ * @param {} board 
+ * @param {*} row 
+ * @param {*} col 
+ * @param {*} value 
+ */
 function changeIfNeeded(board, row, col, value) {
   let size = board.length;
   if (row >= 0 && row < size && col >= 0 && col < size) {
@@ -1182,11 +1220,11 @@ function changeIfNeeded(board, row, col, value) {
   }
 }
 
-/*
+ /*
 let board = [[0, 0, 0],
 [0, 0, 0],
 ['1', 0, 0]];
-console.log(minMax(board, '2', '2', 0, 2, Number.MIN_SAFE_INTEGER, Number.MAX_SAFE_INTEGER, {}));
+console.log(minMax(board, '2', '2', 0, 2, Number.MIN_SAFE_INTEGER, Number.MAX_SAFE_INTEGER, {}));  
 // Debe dar 3 - 1 = 2 */
 
 },{"./boardScore":10,"./getEmptyHex":11,"./transposeHex":13}],13:[function(require,module,exports){
@@ -1218,35 +1256,29 @@ const getEmptyHex = require('./getEmptyHex');
 const minMax = require('./minMax');
 
 class HexAgent extends Agent {
-  constructor(value) {
-    super(value);
-  }
-
-  /**
-   * return a new move. The move is an array of two integers, representing the
-   * row and column number of the hex to play. If the given movement is not valid,
-   * the Hex controller will perform a random valid movement for the player
-   * Example: [1, 1]
-   */
-  send() {
-    let board = this.perception;
-    let size = board.length;
-    let available = getEmptyHex(board);
-    let nTurn = size * size - available.length;
-
-
-    //Random move
-    let move = available[Math.round(Math.random() * (available.length - 1))]
-    return [Math.floor(move / board.length), move % board.length]
-    /*
-    if (nTurn == 0) { // First move
-        return [Math.floor(size / 2) - 1, Math.floor(size / 2) + 1 ];
+    constructor(value) {
+        super(value);
     }
-    const MAX = Number.MAX_SAFE_INTEGER;
+    
+    /**
+     * return a new move. The move is an array of two integers, representing the
+     * row and column number of the hex to play. If the given movement is not valid,
+     * the Hex controller will perform a random valid movement for the player
+     * Example: [1, 1]
+     */
+    send() {
+        let board = this.perception;
+        let size = board.length;
+        let available = getEmptyHex(board);
+        let nTurn = size * size - available.length;
 
-    return minMax(board, this.getID(), this.getID(), 0, 2, -MAX, MAX, {}, null).move;
-    */
-  }
+        if (nTurn == 0) { // First move
+            return [Math.floor(size / 2) - 1, Math.floor(size / 2) + 1 ];
+        }
+        const MAX = Number.MAX_SAFE_INTEGER;
+
+        return minMax(board, this.getID(), this.getID(), 0, 2, -MAX, MAX, {}, null).move;
+    }
 }
 
 module.exports = HexAgent;
